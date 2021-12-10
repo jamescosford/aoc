@@ -1,10 +1,9 @@
 // Scala 2.13.6
 
+import scala.annotation.tailrec
 import scala.io.Source
 
 object stuff {
-  val push = Set('{', '(', '<', '[')
-  val pop  = Set('}', ')', '>', ']')
 
   val pushToPop = Map(
     '{' -> '}',
@@ -30,13 +29,14 @@ object stuff {
   )
 
   def handleChar(stk: List[Char], c: Char): Either[Char, List[Char]] = {
-    if (push.contains(c))
+    if (pushToPop.contains(c))
       return Right(c +: stk)
     if (stk.isEmpty || popToPush(c) != stk.head)
       return Left(c)
     return Right(stk.tail)
   }
 
+  @tailrec
   def firstInvalid(stk: List[Char], str: String): Either[Char, List[Char]] = {
     if (str.isEmpty)
       return Right(stk)

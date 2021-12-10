@@ -1,0 +1,17 @@
+target
+project/project
+project/target
+results
+.idea
+.sdkmanrc
+.bsp
+# Mac temp files
+.DS_Store
+.bloop
+.metals
+.vscode
+metals.sbt
+.envrc
+.bsp
+
+.kra

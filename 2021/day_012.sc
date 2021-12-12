@@ -29,7 +29,7 @@ object stuff {
   }
 
   type Tunnel = (Cave, Cave)
-  case class Path(path: IndexedSeq[Cave], spent: Set[Cave])
+  case class Path(path: IndexedSeq[Cave], spent: Set[Cave.Small], double: Option[Cave.Small])
 
   val rx = "([a-zA-Z]+)-([a-zA-Z]+)".r
 
@@ -43,16 +43,18 @@ object stuff {
       .toSet
       .foldLeft[Map[Cave, List[Cave]]](Map.empty) {
         case (res, cave) =>
-          val forCave = ts.flatMap {
-            case (a, b) if a == cave => Some(b)
-            case (a, b) if b == cave => Some(a)
-            case _                   => None
-          }
+          val forCave = ts
+            .flatMap {
+              case (a, b) if a == cave => Some(b)
+              case (a, b) if b == cave => Some(a)
+              case _                   => None
+            }
+            .filter(_ != Cave.Start)
           res + (cave -> forCave)
       }
   }
 
-  def findAllPaths(
+  @tailrec def findAllPaths(
     map: Map[Cave, List[Cave]],
     paths: IndexedSeq[Path],
     complete: IndexedSeq[Path]
@@ -63,8 +65,7 @@ object stuff {
       val path = paths.head
       val newPaths = map(path.path.last)
         .filter {
-          case s: Cave.Small => !path.spent.contains(s)
-          case Cave.Start    => false
+          case s: Cave.Small => !(path.spent.contains(s) && path.double.isDefined)
           case _             => true
         }
         .map { c =>
@@ -73,15 +74,19 @@ object stuff {
             spent = c match {
               case c: Cave.Small => path.spent + c
               case _             => path.spent
+            },
+            double = c match {
+              case c: Cave.Small if path.spent.contains(c) => Some(c)
+              case _                                       => path.double
             }
           )
         }
-      println(complete.size)
       val comp   = newPaths.filter(_.path.last == Cave.End).toIndexedSeq
-      val incomp = newPaths.filter(_.path.last != Cave.End).toSet
+      val incomp = newPaths.filter(_.path.last != Cave.End).toIndexedSeq
       findAllPaths(map, paths.tail ++ incomp, complete ++ comp)
     }
 }
+
 @main
 def go() {
 
@@ -93,11 +98,20 @@ def go() {
     .map(parse)
     .toList
   val sorted = sort(data)
-  println(sorted)
 
-  val result =
-    findAllPaths(sorted, IndexedSeq(Path(IndexedSeq(Cave.Start), Set.empty)), IndexedSeq.empty)
-  println(result.length)
+  val result1 =
+    findAllPaths(
+      sorted,
+      IndexedSeq(Path(IndexedSeq(Cave.Start), Set.empty, Some(Cave.Small("Dummy")))),
+      IndexedSeq.empty
+    )
+  println(result1.length)
 
-  // result.foreach(println)
+  val result2 =
+    findAllPaths(
+      sorted,
+      IndexedSeq(Path(IndexedSeq(Cave.Start), Set.empty, None)),
+      IndexedSeq.empty
+    )
+  println(result2.length)
 }

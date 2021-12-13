@@ -66,12 +66,7 @@ def go() {
     .map(_.get)
 
   val points = data.filter(_.isLeft).map(_.swap.toOption.get).toSet
-  val extents = points.foldLeft[XY](0 -> 0) {
-    case (bb, xy) =>
-      (math.max(bb._1, xy._1), math.max(bb._2, xy._2))
-  }
-
-  val folds = data.filter(_.isRight).map(_.toOption.get)
+  val folds  = data.filter(_.isRight).map(_.toOption.get)
 
   val res = folds.foldLeft[Points](points) {
     case (pts, fold) => foldPoints(pts, fold)

@@ -1,11 +1,4 @@
 // Scala 2.13.6
-
-// import ammonite.$file.`2021`.day_016.stuff.Operation.Sum
-// import ammonite.$file.`2021`.day_016.stuff.Packet.Operator
-// import ammonite.$file.`2021`.day_016.stuff.Packet.Literal
-
-import scala.util.matching.Regex
-import scala.annotation.tailrec
 import scala.io.Source
 
 object stuff {

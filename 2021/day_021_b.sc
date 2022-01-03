@@ -5,30 +5,9 @@ import scala.io.Source
 
 object stuff {
 
-  type Player = (BigInt, Int, Int)
-
-  case class GameState(
-    p1: Player,
-    p2: Player,
-    dice: BigInt = 0L,
-    rolls: Int = 0,
-    turn: Int = 1
-  )
-
   case class P(dist: BigInt, pos: Int, score: Int)
   case class Id(p1: P, p2: P, turn: Int, n: BigInt)
-  type Dirac = Seq[Id]
-
-  val successors = (for {
-    x <- (1L to 3L)
-    y <- (1L to 3L)
-    z <- (1L to 3L)
-  } yield x + y + z)
-    .map(BigInt.apply)
-    .foldLeft(Map.empty[BigInt, Int]) {
-      case (acc, v) => acc + (v -> (acc.get(v).getOrElse(0) + 1))
-    }
-    .toList
+  type Dirac = (Seq[Id], (BigInt, BigInt))
 
   def Q1(initState: Id): Long = {
 
@@ -59,6 +38,17 @@ object stuff {
       .head
   }
 
+  val successors = (for {
+    x <- (1L to 3L)
+    y <- (1L to 3L)
+    z <- (1L to 3L)
+  } yield x + y + z)
+    .map(BigInt.apply)
+    .foldLeft(Map.empty[BigInt, Int]) {
+      case (acc, v) => acc + (v -> (acc.get(v).getOrElse(0) + 1))
+    }
+    .toList
+
   def updatePDirac(p: P, jump: BigInt): P = {
     val dist = p.dist + jump
     val pos  = (dist - 1) % 10 + 1
@@ -76,39 +66,46 @@ object stuff {
     }
 
   // Step over all successor states and provide the set of next states.
-  def stepId(id: Id): Seq[Id] = successors.map {
-    case (jump, n) => stepId(id, jump, n)
+  def stepId(id: Id): Either[Seq[Id], (BigInt, BigInt)] =
+    math.max(id.p1.score, id.p2.score) match {
+      case s if s >= 21 =>
+        Right(
+          if (id.p1.score > id.p2.score)
+            id.n -> BigInt(0)
+          else
+            BigInt(0) -> id.n
+        )
+      case _ =>
+        Left {
+          successors.map { case (jump, n) => stepId(id, jump, n) }
+        }
+    }
+
+  def stepDirac(d: Dirac): Dirac = {
+    val stepped = d._1.map(stepId(_))
+    val conts   = stepped.filter(_.isLeft).map(_.swap.toOption.get)
+    val wins = stepped.filter(_.isRight).map(_.toOption.get).foldLeft(d._2) {
+      case ((a1, a2), (p1, p2)) => (a1 + p1) -> (a2 + p2)
+    }
+    conts.flatten -> wins
   }
 
-  def stepDirac(d: Dirac): Dirac = d.flatMap(stepId)
-
   def judgeDirac(d: Dirac) = {
-
-    val nstates    = d.size
-    val states     = d.map(_.n).sum
-    val completed  = d.filter(p => math.max(p.p1.score, p.p2.score) < 21).size == 0
-    val p1Wins     = d.filter(_.p1.score >= 21).map(_.n).sum
-    val p2Wins     = d.filter(_.p2.score >= 21).map(_.n).sum
-    val p1TopScore = d.map(_.p1.score).max
-    val p2TopScore = d.map(_.p2.score).max
-    val p1Victory  = p1Wins > states / 2
-    val p2Victory  = p2Wins > states / 2
-    val finished   = p1Victory || p2Victory
+    val nstates   = d._1.size
+    val completed = d._1.size == 0
+    val p1Wins    = d._2._1
+    val p2Wins    = d._2._2
     println(s"unique states: $nstates")
-    println(
-      s"total games: $states; finished: $completed; p1Victory: $p1Victory; p2Victory: $p2Victory"
-    )
-    println(s"p1 topscore: $p1TopScore; p1 wins: $p1Wins")
-    println(s"p2 topscore: $p2TopScore; p2 wins: $p2Wins")
-
+    println(s"p1 wins: $p1Wins")
+    println(s"p2 wins: $p2Wins")
   }
 
   def goDirac = {
     val initState = Seq(
-      // Id(P(8L, 8, 0), P(3L, 3, 9), 1, BigInt(1L))
-      Id(P(4L, 4, 0), P(8L, 8, 0), 1, BigInt(1L))
+      Id(P(8L, 8, 0), P(3L, 3, 0), 1, BigInt(1L))
+      // Id(P(4L, 4, 0), P(8L, 8, 0), 1, BigInt(1L))
     )
-    (0 until 10).foldLeft(initState) {
+    (0 until 20).foldLeft(initState -> (BigInt(0), BigInt(0))) {
       case (ds, _) =>
         val d = stepDirac(ds)
         judgeDirac(d)

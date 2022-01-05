@@ -61,7 +61,7 @@ object stuff {
       **********
    */
   def cut(a: Range, by: Range): Seq[Range] = {
-    (a, by) match {
+    val res = (a, by) match {
       case (a, by) if a.contains(by.start) && by.last >= a.last =>
         Seq((a.start until by.start), (by.start to a.last)) ++ Option.when(a.last + 1 <= by.last)(
           a.last + 1 to by.last
@@ -84,23 +84,31 @@ object stuff {
 
       case (a, by) => Seq(a, by)
     }
+    // println(s"a: ${a}; by: ${by}; res: ${res}")
+    res
   }
 
-  def cut(a: R3, by: R3): Set[R3] =
+  def cut(a: R3, by: R3): Seq[R3] = {
+    val xs = cut(a.x, by.x)
+    val ys = cut(a.y, by.y)
+    val zs = cut(a.z, by.z)
     (for {
-      x <- cut(a.x, by.x)
-      y <- cut(a.y, by.y)
-      z <- cut(a.z, by.z)
+      x <- xs
+      y <- ys
+      z <- zs
     } yield R3(x, y, z)).filter {
       case R3(x, y, z) => x.nonEmpty && y.nonEmpty && z.nonEmpty
-    }.toSet
+    }
+  }
 
-  def doCut(a: R3, by: R3, oo: OnOff): Set[R3] = {
+  def doCut(a: R3, by: R3, oo: OnOff): Seq[R3] = {
     val upd = cut(a, by)
       .filter { r3 =>
         oo match {
-          case OnOff.On  => aContainsB(a, r3) || aContainsB(by, r3)
-          case OnOff.Off => aContainsB(a, r3) && !intersect(by, r3)
+          case OnOff.On  => aContainsB(a, r3) && !aContainsB(by, r3)
+          case OnOff.Off => aContainsB(a, r3) && !aContainsB(by, r3)
+          // case OnOff.On  => aContainsB(a, r3) && !intersect(by, r3)
+          // case OnOff.Off => aContainsB(a, r3) && !intersect(by, r3)
         }
       }
     oo match {
@@ -138,9 +146,9 @@ object stuff {
                 else
                   acc.flatMap(
                     i => doCut(i, line._2, line._1)
-                  )
+                  ) ++ Option.when(line._1 == OnOff.On)(line._2)
 
-              upd.toSeq.sortBy(_.x.start).foreach(println)
+              // upd.toSeq.sortBy(_.x.start).foreach(println)
 
               upd.foreach { r3 =>
                 line._1 match {
@@ -149,12 +157,12 @@ object stuff {
                 }
               }
               val sz = upd.toSeq.map(size).sum
-              println(s"b4: ${szb4}; after: ${sz}; delta: ${sz - szb4}")
-              println
+              // println(s"b4: ${szb4}; after: ${sz}; delta: ${sz - szb4}")
+              // println
               Some(sz -> (upd, l.tail))
           }
       }
-      .take(2)
+      // .take(2)
       .last
 }
 
@@ -164,8 +172,8 @@ def run() = {
 
   val lines = LazyList.from(
     Source
-      .fromFile("2021/day_022_test_input.txt")
-      // .fromFile("day_022_input.txt")
+    // .fromFile("2021/day_022_test_input.txt")
+      .fromFile("2021/day_022_input.txt")
       .getLines()
       .map(parse)
       .map(x => { println(x); x })
@@ -238,18 +246,18 @@ def run() = {
   //   println(onAfterReset(LazyList.from(List(la, lb, lc))))
   // }
 
-  {
-    val la = parse("on x=-20..26,y=-36..17,z=-47..7")
-    val lb = parse("on x=-20..33,y=-21..23,z=-26..28")
-    val lx = parse("on x=27..33,y=18..23,z=8..28")
+  // {
+  //   val la = parse("on x=-20..26,y=-36..17,z=-47..7")
+  //   val lb = parse("on x=-20..33,y=-21..23,z=-26..28")
+  //   val lx = parse("on x=27..33,y=18..23,z=8..28")
 
-    println(size(la._2))
-    println(size(lb._2))
-    println(size(lx._2))
+  //   println(size(la._2))
+  //   println(size(lb._2))
+  //   println(size(lx._2))
 
-    println(onAfterReset(LazyList.from(List(la, lb))))
-  }
-//  val sz = onAfterReset(lines)
+  //   println(onAfterReset(LazyList.from(List(la, lb))))
+  // }
+  val sz = onAfterReset(lines)
 
-  // println(sz)
+  println(sz)
 }

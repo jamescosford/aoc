@@ -35,6 +35,13 @@ z == 0
 
 object stuff {
 
+  case class Z_1(v: Int) extends AnyVal
+  case class Z(v: Int) extends AnyVal
+  case class W(v: Int) extends AnyVal
+
+  type MonadInput = (W, Z_1)
+  case class SolveResult(w: W, z_1: Z_1)
+
   sealed trait Operand
   case class IntVal(v: Int) extends Operand
   object IntVal {
@@ -134,6 +141,15 @@ object stuff {
     }.filter(_._2._2(3) == forZ)
     .map {_._1}.toList
 
+  def findSolnsMB(mb: (Int, Int) => Int, forZ: Int): List[(Int, Int)] =
+    (for {
+      i <- (1 to 9)
+      z <- (-10000 to 10000)
+    } yield (z, i)).map { case (z_1, i) =>
+      (z_1, i) -> mb(i, z_1)
+    }.filter(_._2 == forZ)
+    .map {_._1}.toList
+
   def solvBackward(ops: Seq[List[Op]]) =
     ops.foldLeft[(List[Map[Int, Int]], Set[Int])](List.empty -> Set(0)) {
       case ((res, zs), ops) =>
@@ -144,6 +160,17 @@ object stuff {
         )
     }
 
+  def solvBackwardMB(ops: Seq[(Int, Int) => Int]) =
+    ops.foldLeft[(List[Map[Int, Int]], Set[Int])](List.empty -> Set(0)) {
+      case ((res, zs), ops) =>
+        val solns = zs.flatMap(z => findSolnsMB(ops, z))
+        (
+          res :+ solns.toMap,
+          solns.map(_._1).toSet
+        )
+    }
+
+
   def forward(ops: List[Op], forZ: Int): List[(Int, (Int, Int))] =
     (1 to 9).map { i =>
       val res = runOps(ops, Seq(i) -> IndexedSeq(0,0,0,forZ))
@@ -151,10 +178,26 @@ object stuff {
       (i,(forZ, z))
     }.toList
 
+  def forwardMB(mb: (Int, Int) => Int, forZ: Int): List[(Int, (Int, Int))] =
+    (1 to 9).map { i =>
+      val res = mb(i, forZ)
+      (i,(forZ, res))
+    }.toList
+
   def solvForward(ops: Seq[List[Op]]) =
     ops.foldLeft[(List[Map[Int, (Int, Int)]], Set[Int])](List.empty -> Set(0)) {
      case ((res, zs), ops) =>
       val solns = zs.flatMap(z => forward(ops, z))
+      (
+        res :+ solns.toMap,
+        solns.map(_._2._2).toSet
+      )
+    }
+
+  def solvForwardMB(ops: Seq[(Int, Int) => Int]) =
+    ops.foldLeft[(List[Map[Int, (Int, Int)]], Set[Int])](List.empty -> Set(0)) {
+     case ((res, zs), ops) =>
+      val solns = zs.flatMap(z => forwardMB(ops, z))
       (
         res :+ solns.toMap,
         solns.map(_._2._2).toSet
@@ -181,23 +224,23 @@ object stuff {
     s.split('\n').map(parse).toList
 
 
-  def MONADBlock(A: Int, B: Int, C: Int)(w: Int, z_1: Int): (Int, Int, Int, Int) = {
-    var x = z_1
+  def MONADBlock(A: Int, B: Int, C: Int)(mi: MonadInput): Int = {
+    val (w, z_1) = mi
+    var x = z_1.v
     x = x % 26
     x = x + B
     x = if (x == w) 1 else 0
     x = if (x == 0) 1 else 0
-    var z = z_1 / A
+    var z = z_1.v / A
     var y = (25 * x + 1)
     z = z * y
-    y = (w + C) * x
+    y = (w.v + C) * x
     z = z + y
     z
-    (w, x, y, z)
   }
 
-  def toMonadBlocks(ops: IndexedSeq[List[Op]]): List[(Int, Int) => (Int, Int, Int, Int)] =
-    ops.foldLeft[List[(Int, Int) => (Int, Int, Int, Int)]](List.empty) {
+  def toMonadBlocks(ops: IndexedSeq[List[Op]]): List[(Int, Int) => Int] =
+    ops.foldLeft[List[(Int, Int) => Int]](List.empty) {
       case (acc, ops) =>
         val is = ops.toIndexedSeq
         acc :+ MONADBlock(
@@ -275,17 +318,25 @@ add z y"""
     .map(_.toList)
     .toIndexedSeq
 
-    solvBackward(data.reverse)._1.map { zs =>
-      zs.toList.sortBy(_._1)
-    }.zipWithIndex.map { case (a, b) => b -> a}.foreach(println)
+    // solvBackward(data.reverse)._1.map { zs =>
+    //   zs.toList.sortBy(_._1)
+    // }.zipWithIndex.map { case (a, b) => b -> a}.foreach(println)
+
+    // solvBackwardMB(toMonadBlocks(data).reverse)._1.map { zs =>
+    //   zs.toList.sortBy(_._1)
+    // }.zipWithIndex.map { case (a, b) => b -> a}.foreach(println)
+
+    // solvForwardMB(toMonadBlocks(data))._1.map { zs =>
+    //   zs.toList.sortBy(_._1)
+    // }.zipWithIndex.map { case (a, b) => b -> a}.foreach(println)
 
     // solvForward(data.take(3))._2.toIndexedSeq.sorted.foreach(println)
 
     // forward(data(0), 0).foreach(println)
 
-    (0 to 9).map { w =>
-      w -> MONADBlock(1, 13, 3)(w, 0)
-    }.foreach(println)
+    // (0 to 9).map { w =>
+    //   w -> MONADBlock(1, 13, 3)(w, 0)
+    // }.foreach(println)
 
     // (0 to 9).map { w =>
     //   w -> toMonadBlocks(data)(0)(w, 0)
@@ -295,6 +346,13 @@ add z y"""
     //   w -> MONADBlock(1, 11, 12)(w, 6)
     // }.foreach(println)
 
+
+    // (0 to 9).map { w =>
+    //   w -> MONADBlock(1, 11, 12)(1, 0)
+    // }.foreach(println)
+
+
+    println(s"[0] -> ${MONADBlock(1, 13, 3)(1, 0)}")
 
 
 

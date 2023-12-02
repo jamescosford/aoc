@@ -1,6 +1,6 @@
 
 
-pub mod day_2023_01 {
+pub mod day_01 {
   use crate::common::common::read_lines;
   use itertools::Itertools;
   use regex::Regex;

@@ -1,7 +1,7 @@
 mod common;
-mod day_03;
+mod day_04;
 
-use crate::day_03::day_03::{aoc_a, aoc_b};
+use crate::day_04::day_04::{aoc_a, aoc_b};
 
 fn main() {
     println!("{}", aoc_a());

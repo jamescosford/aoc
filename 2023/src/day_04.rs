@@ -7,6 +7,7 @@ pub mod day_04 {
   use std::str::FromStr;
   use core::fmt::Formatter;
   use std::cmp::max;
+  use itertools::unfold;
 
 
   fn get() -> Vec<(i32, Vec<i32>, Vec<i32>)> {
@@ -56,7 +57,41 @@ pub mod day_04 {
       score(wins, haves)
     }).fold(0i64, |acc,v| acc + v as i64)
   }
+
   pub fn aoc_b() -> i64 {
-    1i64
+    let data = get();
+
+    fn succ(game: i32, wins: &Vec<i32>, haves: &Vec<i32>) -> Vec<i32> {
+      let haves_hs: HashSet<i32> = HashSet::from_iter(haves.clone().into_iter());
+      let n = wins.iter().filter(|v| {
+        haves_hs.contains(v)
+      }).collect_vec().len() as i32;
+
+      if n == 0i32 { Vec::new() } else { (1..=n).map(|v| game + v).collect_vec() }
+    }
+
+    let succ_map: HashMap<i32, Vec<i32>> = data.iter().map(|(game, wins, haves)| {
+      (*game, succ(*game, wins, haves))
+    }).collect();
+
+    let init_todo: HashMap<i32, i32> = data.iter().map(|v| (v.0, 1)).collect();
+
+    let init : (i64, HashMap<i32, i32>) = (0i64, init_todo);
+    data
+      .iter()
+      .map(|v| v.0)
+      .fold(init, |(acc, mut todo), game| {
+        let copies = todo.get(&game).map(|v| *v).unwrap_or(0);
+        let succs = succ_map.get(&game).unwrap();
+        succs.iter().for_each(|s| {
+          if todo.contains_key(s) {
+            todo.insert(*s, todo.get(s).unwrap() + copies);
+          } else {
+            todo.insert(*s, copies);
+          }
+        });
+        (acc + copies as i64, todo)
+      }).0
   }
+
 }

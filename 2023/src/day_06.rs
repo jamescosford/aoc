@@ -7,7 +7,7 @@ pub mod day_06 {
 
   fn to_win_range(t: &i64, r: &i64) -> Range<i64> {
     let (a, b, c) = (-1 as f64, *t as f64, -(*r) as f64);
-    let sqrted = f64::sqrt( b*b - 4f64 * a * c);
+    let sqrted = f64::sqrt(b*b - 4f64 * a * c);
     let r0 = ((-b + sqrted) / -2f64) as i64;
     let r1 = ((-b - sqrted) / -2f64) as i64;
     r0..r1

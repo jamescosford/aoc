@@ -69,6 +69,7 @@ pub mod day_08 {
     let (dirs, graph) = parse("input/day_08.txt"); //parse("test_input/day_08.txt");
     let starts = graph.keys().filter(|k| k.ends_with("A")).map(|v| v.clone()).collect_vec();
     let dir_chars = dirs.chars().collect_vec();
+    println!("dir chars len {}", dir_chars.len());
     let len = dirs.len();
     let steps_per = starts.iter().map(|start| {
       unfold((0_usize, 0u64, start), |(i, steps, key)| {
